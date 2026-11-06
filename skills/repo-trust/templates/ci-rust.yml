@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: [{{DEFAULT_BRANCH}}]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Format check
+        run: cargo fmt --check
+
+      - name: Compile without warnings
+        run: cargo check -- -D warnings
+
+      - name: Tests
+        run: cargo test

@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    branches: [{{DEFAULT_BRANCH}}]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      # Run only scripts that exist in package.json.
+      - name: Typecheck
+        run: npm run typecheck
+        if: ${{ hashFiles('tsconfig.json') != '' }}
+
+      - name: Test
+        run: npm test
+        if: ${{ hashFiles('package.json') != '' }}
+
+      - name: Build
+        run: npm run build

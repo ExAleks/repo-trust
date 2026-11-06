@@ -1,0 +1,52 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- build steps: replace with the project's real build ---
+      # Python example:
+      # - uses: actions/setup-python@v5
+      #   with: { python-version: '3.11' }
+      # - run: pip install -r requirements.txt pyinstaller
+      # - run: pyinstaller --onefile --name {{PROJECT_NAME}} main.py
+      # Node example:
+      # - uses: actions/setup-node@v4
+      #   with: { node-version: '20' }
+      # - run: npm ci && npm run build
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p release
+          # cp dist/{{PROJECT_NAME}} release/          # adjust to build output
+          ls -la release/
+
+      - name: Checksums
+        run: |
+          cd release
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          body: |
+            Built by CI from tag ${{ github.ref_name }}.
+
+            Verify the artifacts against SHA256SUMS.txt attached to this
+            release. Do not trust binaries from anywhere else.

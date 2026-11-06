@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: pip install pyyaml
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Skill templates are valid after placeholder substitution
+        run: |
+          python - <<'EOF'
+          import glob, sys, yaml
+          failures = []
+          for f in glob.glob("skills/repo-trust/templates/*.yml"):
+              raw = open(f, encoding="utf-8").read()
+              raw = raw.replace("{{DEFAULT_BRANCH}}", "main").replace("{{PROJECT_NAME}}", "app")
+              try:
+                  data = yaml.safe_load(raw)
+                  if not isinstance(data, dict) or not data:
+                      failures.append(f"{f}: not a mapping")
+              except yaml.YAMLError as e:
+                  failures.append(f"{f}: {e}")
+          if failures:
+              print("\n".join(failures)); sys.exit(1)
+          print("all templates parse")
+          EOF
